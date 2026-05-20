@@ -1,0 +1,22 @@
+{
+  "name": "nimbus-atmosphere",
+  "version": "1.0.0",
+  "description": "Persistent atmospheric background engine for the Nimbus ecosystem",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/react": ">=18.0.0",
+    "typescript": ">=5.0.0"
+  }
+}
