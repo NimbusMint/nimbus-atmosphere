@@ -170,6 +170,26 @@ x = -100vw + progress * 200vw   // sweeps left-to-right across the viewport
 
 Phase offsets encode the original CSS `animation-delay` values as fractions of the 120-second period, so clouds are staggered at `t=0` exactly as they were in the original CSS implementation.
 
+## Development
+
+```bash
+npm install
+npm run lint       # eslint
+npm run typecheck  # tsc --noEmit
+```
+
+Both are worth running before pushing, and lint especially. This package ships
+TypeScript source rather than built output, so consumers wire it in with `file:`
+plus Next's `transpilePackages` and its `src/` ends up inside *their* lint runs.
+In nimbus-fe those gates run inside the deploy rather than pre-merge, so a lint
+error introduced here fails a downstream deploy — and `tsc` alone does not catch
+the class of mistake that does it. The React compiler rules are the ones that
+matter: a ref written during render typechecks cleanly and still breaks the
+rollout.
+
+`eslint.config.mjs` therefore approximates what `eslint-config-next` 16 enforces
+over this code, and stays no laxer than nimbus-fe's own run.
+
 ## TypeScript
 
 Full types are included. No `@types/` package needed.
