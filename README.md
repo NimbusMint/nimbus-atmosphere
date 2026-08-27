@@ -80,7 +80,9 @@ short afterglow.
 It is tuned to stay out of the way. With the defaults, a strike fires roughly
 every 70 seconds on average — gaps range from about 10 seconds to three minutes —
 and the sky is lit for well under 1% of frames. Nothing fires in the first 20
-seconds after load, when the reader is still finding the page.
+seconds after load, when the reader is still finding the page — and nothing that
+was already in flight is shown when dark mode is entered later in a session, so
+a strike is always joined at its first frame rather than mid-flash.
 
 The schedule is a pure function of elapsed time, not `Math.random()`. Time is cut
 into `intervalSeconds` slots; each slot either stays quiet or holds one strike at
@@ -112,7 +114,7 @@ reduce` set. Cloud drift is left alone.
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `warmupSeconds` | `20` | Seconds after page load before any strike may fire. |
+| `warmupSeconds` | `20` | Seconds after page load before any strike may fire. The same floor applies from the moment lightning goes live, so entering dark mode later in the session never joins a flash mid-envelope. |
 | `intervalSeconds` | `45` | Length of each scheduling slot. |
 | `strikeChance` | `0.65` | Probability a given slot contains a strike at all. |
 | `durationSeconds` | `0.9` | Length of one flash sequence. |

@@ -34,7 +34,11 @@ export interface AtmosphereTheme {
 }
 
 export interface LightningConfig {
-  /** Seconds after page load before any strike may fire. Default: 20. */
+  /**
+   * Seconds after page load before any strike may fire. Default: 20.
+   * Entering dark mode later in the session applies the same floor from the
+   * moment lightning goes live, so no strike is ever joined mid-flash.
+   */
   warmupSeconds: number;
   /** Length of each scheduling slot in seconds. Default: 45. */
   intervalSeconds: number;

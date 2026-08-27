@@ -42,6 +42,9 @@ export function AtmosphereLayer({
   const boltRef = useRef<HTMLSpanElement | null>(null);
   // Last opacity written per cloud, so a quiet frame touches no DOM at all.
   const lastFlash = useRef<number[]>([]);
+  // Elapsed time at which lightning went live, so entering dark mode mid-session
+  // never drops the viewer into the middle of a flash already in progress.
+  const liveSince = useRef<number | null>(null);
 
   const theme = getTheme(dark);
 
@@ -90,7 +93,11 @@ export function AtmosphereLayer({
       }
 
       const { enabled, cfg } = frameCfg.current;
-      const strike = enabled && !reducedMotion.current ? computeStrike(t, cfg) : null;
+      const live = enabled && !reducedMotion.current;
+      if (!live) liveSince.current = null;
+      else if (liveSince.current === null) liveSince.current = t;
+
+      const strike = live ? computeStrike(t, cfg, liveSince.current!) : null;
 
       for (let i = 0; i < CLOUD_CONFIGS.length; i++) {
         let value = 0;

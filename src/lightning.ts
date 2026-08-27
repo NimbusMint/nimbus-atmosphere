@@ -63,9 +63,16 @@ function envelope(u: number, seed: number): number {
  * Resolve the strike state at `t` seconds of elapsed engine time.
  * Returns `null` when nothing is firing, which is the overwhelming majority
  * of frames.
+ *
+ * `since` is the elapsed time at which lightning became live. It matters when
+ * dark mode is entered mid-session: the schedule runs off the engine clock, so
+ * without this a strike already halfway through its envelope would appear the
+ * instant the flash nodes mount — a pop at mid-brightness rather than a stroke.
+ * Strikes that began before `since` are skipped; the next one fires normally.
  */
-export function computeStrike(t: number, cfg: LightningConfig): Strike | null {
-  if (t < cfg.warmupSeconds || cfg.cloudIndices.length === 0) return null;
+export function computeStrike(t: number, cfg: LightningConfig, since = 0): Strike | null {
+  const floor = Math.max(cfg.warmupSeconds, since);
+  if (t < floor || cfg.cloudIndices.length === 0) return null;
   if (cfg.intervalSeconds <= 0 || cfg.durationSeconds <= 0) return null;
 
   const slot = Math.floor(t / cfg.intervalSeconds);
@@ -76,8 +83,9 @@ export function computeStrike(t: number, cfg: LightningConfig): Strike | null {
   const start = slot * cfg.intervalSeconds + hash01(slot * 5 + 2) * window;
 
   // A flash in the first seconds after load is the most distracting one there
-  // is — the reader is still finding the page. Skip it entirely.
-  if (start < cfg.warmupSeconds) return null;
+  // is — the reader is still finding the page. Skip it entirely. Same for one
+  // already in flight when lightning went live.
+  if (start < floor) return null;
 
   const u = (t - start) / cfg.durationSeconds;
   if (u < 0 || u >= 1) return null;
