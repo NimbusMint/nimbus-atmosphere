@@ -1,6 +1,6 @@
 {
   "name": "nimbus-atmosphere",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Persistent atmospheric background engine for the Nimbus ecosystem",
   "type": "module",
   "scripts": {
