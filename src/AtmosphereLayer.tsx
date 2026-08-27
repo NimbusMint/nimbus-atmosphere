@@ -55,12 +55,20 @@ export function AtmosphereLayer({
   );
 
   // Read by the frame callback so prop changes take effect without ever
-  // resubscribing to the engine.
+  // resubscribing to the engine. Seeded with the mount-time values so the very
+  // first frame is already correct, then kept current in an effect — writing a
+  // ref during render is not safe under concurrent rendering, where a render
+  // may be thrown away or replayed.
   const frameCfg = useRef<{ enabled: boolean; cfg: LightningConfig }>({
     enabled: lightningEnabled,
     cfg: lightningCfg,
   });
-  frameCfg.current = { enabled: lightningEnabled, cfg: lightningCfg };
+  // No dependency array: this is a cheap assignment that must land after every
+  // commit, and `lightningCfg` is a fresh object whenever a config override is
+  // passed inline.
+  useEffect(() => {
+    frameCfg.current = { enabled: lightningEnabled, cfg: lightningCfg };
+  });
 
   // Flashing is a photosensitivity concern, so it is the one part of the
   // scene that reduced-motion switches off. Drifting is left alone.
