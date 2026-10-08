@@ -90,7 +90,10 @@ a hashed offset. Remounting, navigating, or suspending the loop in a hidden tab
 cannot desynchronize it or dump a burst of missed strikes on resume.
 
 Flashing is switched off entirely when the user has `prefers-reduced-motion:
-reduce` set. Cloud drift is left alone.
+reduce` set. Cloud drift stops too: each cloud rests at its designed layout
+position (`translateX(0)`) from the first paint, via a media query in the
+rendered markup, and no transform is written per frame. If the
+preference is cleared mid-session, drift resumes from the global clock.
 
 ```tsx
 // Rarer and dimmer

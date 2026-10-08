@@ -9,6 +9,28 @@ import { computeStrike, resolveLightning } from './lightning';
 import type { AtmosphereLayerProps, LightningConfig } from './types';
 
 /**
+ * Horizontal position (vw) of cloud `i` at elapsed time `t`.
+ * Position = f(global_time + per-cloud phase offset), identical to the
+ * original CSS: translateX(-100vw → +100vw) over `period` seconds.
+ */
+function cloudX(i: number, t: number): number {
+  const cloud = CLOUD_CONFIGS[i];
+  const elapsed = t + cloud.phaseOffset * cloud.period;
+  const progress = (elapsed % cloud.period) / cloud.period;
+  return -100 + progress * 200;
+}
+
+// Under reduced motion every cloud rests at translateX(0): its designed layout
+// position (the composed scene). At t=0 the phase offsets park all six clouds
+// near -100vw, off-screen, so t=0 would be an empty sky. A media query rather
+// than JS applies the rest, so it is in the server HTML and the very first
+// paint is already static; `!important` beats the inline transform the RAF
+// loop writes, so flipping the preference either way needs no cleanup.
+const CLOUD_CLASS = 'nimbus-atmosphere-cloud';
+const REDUCED_MOTION_CSS =
+  `@media (prefers-reduced-motion: reduce){.${CLOUD_CLASS}{transform:translateX(0)!important}}`;
+
+/**
  * Persistent atmospheric background layer for the Nimbus ecosystem.
  *
  * Renders as `position: fixed` so it persists through all route transitions
@@ -70,8 +92,9 @@ export function AtmosphereLayer({
     frameCfg.current = { enabled: lightningEnabled, cfg: lightningCfg };
   });
 
-  // Flashing is a photosensitivity concern, so it is the one part of the
-  // scene that reduced-motion switches off. Drifting is left alone.
+  // Reduced motion switches off both flashing (a photosensitivity concern) and
+  // drift: clouds rest via REDUCED_MOTION_CSS and no transform is written per
+  // frame. When the preference clears, drift resumes from the global clock.
   const reducedMotion = useRef(false);
   useEffect(() => {
     if (typeof window === 'undefined' || !window.matchMedia) return;
@@ -88,16 +111,13 @@ export function AtmosphereLayer({
     const id = engineId.current!;
 
     engine.subscribe(id, (t) => {
-      for (let i = 0; i < CLOUD_CONFIGS.length; i++) {
-        const el = cloudRefs.current[i];
-        if (!el) continue;
-        const cloud = CLOUD_CONFIGS[i];
-        // Position = f(global_time + per-cloud phase offset)
-        // Identical to CSS: translateX(-100vw → +100vw) over `period` seconds.
-        const elapsed = t + cloud.phaseOffset * cloud.period;
-        const progress = (elapsed % cloud.period) / cloud.period;
-        const x = -100 + progress * 200;
-        el.style.transform = `translateX(${x.toFixed(3)}vw)`;
+      // Under reduce the stylesheet holds the clouds at rest; skip the writes.
+      if (!reducedMotion.current) {
+        for (let i = 0; i < CLOUD_CONFIGS.length; i++) {
+          const el = cloudRefs.current[i];
+          if (!el) continue;
+          el.style.transform = `translateX(${cloudX(i, t).toFixed(3)}vw)`;
+        }
       }
 
       const { enabled, cfg } = frameCfg.current;
@@ -164,6 +184,8 @@ export function AtmosphereLayer({
         }}
       />}
 
+      <style>{REDUCED_MOTION_CSS}</style>
+
       {/* ── Drifting clouds ── */}
       {CLOUD_CONFIGS.map((cloud, i) => {
         const svgStyle: CSSProperties = {
@@ -176,7 +198,8 @@ export function AtmosphereLayer({
           color: theme.cloudColors?.[i] ?? cloud.color,
           // GPU-composited transform — no layout involvement per frame
           willChange: 'transform',
-          // Initial off-screen state — RAF fires on next frame and positions correctly
+          // Initial off-screen state — RAF fires on next frame and positions
+          // correctly. Overridden by REDUCED_MOTION_CSS under reduce.
           transform: 'translateX(-100vw)',
         };
 
@@ -186,6 +209,7 @@ export function AtmosphereLayer({
           <svg
             key={cloud.id}
             ref={(el) => { cloudRefs.current[i] = el; }}
+            className={CLOUD_CLASS}
             viewBox={large ? '0 0 200 100' : '0 0 120 60'}
             fill="none"
             aria-hidden="true"
